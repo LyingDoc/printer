@@ -125,7 +125,7 @@ public class PrintServiceUtils {
             return result;
         }
 
-        Winspool.PRINTER_INFO_2 printerInfo = WinspoolUtil.getPrinterInfo2(printerName);
+        Winspool.PRINTER_INFO_2 printerInfo = WinspoolUtil.getPrinterInfo2(finalPrinterName);
 
         result.setPrinterName(printerInfo.pPrinterName);
         result.setTaskNumber(printerInfo.cJobs);
