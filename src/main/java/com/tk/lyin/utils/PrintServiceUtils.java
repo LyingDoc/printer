@@ -32,6 +32,7 @@ public class PrintServiceUtils {
     private static final short DC_PAPERS = 2;
     private static final short DC_PAPERSIZE = 3;
     private static final short DC_PAPERNAMES = 16;
+    private static final Pattern DIM_PATTERN = Pattern.compile("^\\*PaperDimension\\s+([^/\\s:]+).*?:\\s*\"([\\d.]+)\\s+([\\d.]+)\"");
 
 
     public static Printer getDefaultPrinter() {
@@ -103,7 +104,7 @@ public class PrintServiceUtils {
 
         if (OSUtils.IS_OS_UNIX) {
             // 1. 增强型正则，适配更多驱动格式
-            Pattern DIM_PATTERN = Pattern.compile("^\\*PaperDimension\\s+([^/\\s:]+).*?:\\s*\"([\\d.]+)\\s+([\\d.]+)\"");
+
             result = CpusUtil.processPrinters(cupsDests -> {
                 if (ArrayUtils.isEmpty(cupsDests)) return null;
                 PaperSizesInfo innerResult = new PaperSizesInfo();
@@ -114,17 +115,8 @@ public class PrintServiceUtils {
                     String pName = cupsDest.name;
 
                     if (StringUtils.equals(pName, finalPrinterName)) {
-                        innerResult.setPrinterName(pName);
-                        String ppdPath = LibCpus.instance.cupsGetPPD(pName);
-                        if (StringUtils.isEmpty(ppdPath)) return null;
-                        try {
-                            List<PaperSizesInfo.PaperSize> paperSizes = getPaperSizeList(ppdPath, DIM_PATTERN);
-                            innerResult.setPaperSizes(paperSizes);
-                        } finally {
-                            FileUtils.delete(new File(ppdPath)); // 养成清理 PPD 临时文件的习惯
-                        }
                         // 填充状态信息
-                        getPrintStateAndJobCount(innerResult, numOptions, options);
+                        getPrinterInfo(innerResult, pName, numOptions, options);
                     }
                 }
 
@@ -151,9 +143,6 @@ public class PrintServiceUtils {
         List<PaperSizesInfo> result = new ArrayList<>();
 
         if (OSUtils.IS_OS_UNIX) {
-            // 1. 增强型正则，适配更多驱动格式
-            Pattern DIM_PATTERN = Pattern.compile("^\\*PaperDimension\\s+([^/\\s:]+).*?:\\s*\"([\\d.]+)\\s+([\\d.]+)\"");
-
             result = CpusUtil.processPrinters(cupsDests -> {
                 if (ArrayUtils.isEmpty(cupsDests)) return null;
                 PaperSizesInfo innerResult = new PaperSizesInfo();
@@ -163,18 +152,8 @@ public class PrintServiceUtils {
                     int numOptions = cupsDest.num_options;
                     Pointer options = cupsDest.options;
                     String pName = cupsDest.name;
-
-                    innerResult.setPrinterName(pName);
-                    String ppdPath = LibCpus.instance.cupsGetPPD(pName);
-                    if (StringUtils.isEmpty(ppdPath)) return null;
-                    try {
-                        List<PaperSizesInfo.PaperSize> paperSizes = getPaperSizeList(ppdPath, DIM_PATTERN);
-                        innerResult.setPaperSizes(paperSizes);
-                    } finally {
-                        FileUtils.delete(new File(ppdPath)); // 养成清理 PPD 临时文件的习惯
-                    }
                     // 填充状态信息
-                    getPrintStateAndJobCount(innerResult, numOptions, options);
+                    getPrinterInfo(innerResult, pName, numOptions, options);
                     innerResultList.add(innerResult);
                 }
 
@@ -261,7 +240,18 @@ public class PrintServiceUtils {
         job.print(attributes);
     }
 
-    private static void getPrintStateAndJobCount(PaperSizesInfo innerResult, int numOptions, Pointer options) {
+
+    @SneakyThrows
+    private static void getPrinterInfo(PaperSizesInfo innerResult, String pName, int numOptions, Pointer options) {
+        innerResult.setPrinterName(pName);
+        String ppdPath = LibCpus.instance.cupsGetPPD(pName);
+        if (StringUtils.isEmpty(ppdPath)) new PaperSizesInfo();
+        try {
+            List<PaperSizesInfo.PaperSize> paperSizes = getPaperSizeList(ppdPath);
+            innerResult.setPaperSizes(paperSizes);
+        } finally {
+            FileUtils.delete(new File(ppdPath)); // 养成清理 PPD 临时文件的习惯
+        }
         String stateStr = LibCpus.instance.cupsGetOption("printer-state", numOptions, options);
         int state = (stateStr != null) ? Integer.parseInt(stateStr) : 0;
         innerResult.setStatus(state);
@@ -272,7 +262,7 @@ public class PrintServiceUtils {
     }
 
     @SneakyThrows
-    private static List<PaperSizesInfo.PaperSize> getPaperSizeList(String ppdPath, Pattern DIM_PATTERN) {
+    private static List<PaperSizesInfo.PaperSize> getPaperSizeList(String ppdPath) {
         List<PaperSizesInfo.PaperSize> paperSizes = new ArrayList<>();
         BufferedReader reader = new BufferedReader(new FileReader(ppdPath));
         String line;
