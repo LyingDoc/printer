@@ -1,5 +1,7 @@
 package com.tk.lyin.domain;
 
+import com.tk.lyin.utils.StringUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -80,7 +82,7 @@ public class PaperKind {
      * @return 对应的DMPAPER ID，匹配不到返回 256 (Custom)
      */
     public static int getKind(String rawName) {
-        if (rawName == null || rawName.isEmpty()) return 256;
+        if (StringUtils.isEmpty(rawName)) return 256;
 
         // 1. 处理前缀星号和空格
         String key = rawName.replace("*", "").trim().toUpperCase();

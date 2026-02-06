@@ -104,7 +104,6 @@ public class PrintServiceUtils {
 
         if (OSUtils.IS_OS_UNIX) {
             // 1. 增强型正则，适配更多驱动格式
-
             result = CpusUtil.processPrinters(cupsDests -> {
                 if (ArrayUtils.isEmpty(cupsDests)) return null;
                 PaperSizesInfo innerResult = new PaperSizesInfo();

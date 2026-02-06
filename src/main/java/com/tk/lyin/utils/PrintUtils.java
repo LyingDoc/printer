@@ -1,9 +1,5 @@
 package com.tk.lyin.utils;
 
-import com.sun.jna.Pointer;
-import com.tk.lyin.domain.LibCpusStatus;
-import com.tk.lyin.domain.PaperSizesInfo;
-import com.tk.lyin.platform.LibCpus;
 import org.dromara.pdf.shade.org.apache.pdfbox.pdmodel.PDDocument;
 import org.dromara.pdf.shade.org.apache.pdfbox.printing.PDFPrintable;
 import org.dromara.pdf.shade.org.apache.pdfbox.printing.Scaling;
@@ -21,7 +17,7 @@ public class PrintUtils {
     public static final String EVEN = "even";// 奇数
 
     public static MediaSizeName parseMediaSize(String paperSizeStr) {
-        if (paperSizeStr == null || paperSizeStr.isEmpty()) {
+        if (StringUtils.isEmpty(paperSizeStr)) {
             return MediaSizeName.ISO_A4; // 默认值
         }
         // 核心逻辑：匹配 Java 标准库中的属性
@@ -38,7 +34,7 @@ public class PrintUtils {
     }
 
     public static OrientationRequested parseOrientation(String orientationStr) {
-        if (orientationStr == null || orientationStr.isEmpty()) {
+        if (StringUtils.isEmpty(orientationStr)) {
             return OrientationRequested.PORTRAIT; // 默认值
         }
 
@@ -60,7 +56,7 @@ public class PrintUtils {
     }
 
     public static Chromaticity parseChromaticity(String chromaticityStr) {
-        if (chromaticityStr == null || chromaticityStr.isEmpty()) {
+        if (StringUtils.isEmpty(chromaticityStr)) {
             return Chromaticity.MONOCHROME; // 默认使用彩色，符合现代大多数场景
         }
 
@@ -80,7 +76,7 @@ public class PrintUtils {
     }
 
     public static Sides parseSides(String sidesStr) {
-        if (sidesStr == null || sidesStr.isEmpty()) {
+        if (StringUtils.isEmpty(sidesStr)) {
             return Sides.ONE_SIDED; // 默认单面
         }
 
@@ -97,7 +93,7 @@ public class PrintUtils {
     }
 
     public static MediaTray parseMediaTray(String trayStr) {
-        if (trayStr == null || trayStr.isEmpty()) {
+        if (StringUtils.isEmpty(trayStr)) {
             return MediaTray.MAIN; // 默认主纸盒
         }
 
@@ -116,18 +112,18 @@ public class PrintUtils {
 
     public static void setScaling(PDDocument pdDocument, PrinterJob job, String scaling) {
         Scaling scale = Scaling.SCALE_TO_FIT;
-        if (StringUtils.isEmpty(scaling)) {
+        if (StringUtils.isNotEmpty(scaling)) {
             // 设置缩放
             switch (scaling) {
                 case "actual-size":
                     scale = Scaling.ACTUAL_SIZE;
                     break;
                 case "shrink-to-fits":
+                    scale = Scaling.SHRINK_TO_FIT;
                     break;
                 case "stretch-to-fits":
                     scale = Scaling.STRETCH_TO_FIT;
                     break;
-                case "scale-to-fits":
             }
         }
         Book book = new Book();
@@ -159,6 +155,4 @@ public class PrintUtils {
             }
         }
     }
-
-
 }

@@ -8,7 +8,7 @@ import java.util.Set;
 public class ArrayUtils {
 
     public static Integer[] string2IntArray(String str) {
-        if (str != null && !str.trim().isEmpty()) {
+        if (StringUtils.isNotEmpty(str)) {
             String[] strArr = str.split("\\D+");
             Integer[] data = new Integer[strArr.length];
 
@@ -23,7 +23,7 @@ public class ArrayUtils {
     }
 
     public static String[] listToArray(List<String> data) {
-        if (data != null && !data.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(data)) {
             int length = data.size();
             String[] t = new String[length];
 
@@ -38,7 +38,7 @@ public class ArrayUtils {
     }
 
     public static String[] setToArray(Set<String> data) {
-        if (data != null && !data.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(data)) {
             String[] t = new String[data.size()];
             data.toArray(t);
             return t;
@@ -48,7 +48,7 @@ public class ArrayUtils {
     }
 
     public static Integer[] listToIntArray(List<Integer> data) {
-        if (data != null && !data.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(data)) {
             int length = data.size();
             Integer[] t = new Integer[length];
 
@@ -64,7 +64,7 @@ public class ArrayUtils {
 
     public static <T> List<T> arrayToList(T[] array) {
         List<T> list = new ArrayList<>();
-        if (array != null && array.length != 0) {
+        if (isNotEmpty(array)) {
             Collections.addAll(list, array);
             return list;
         } else {

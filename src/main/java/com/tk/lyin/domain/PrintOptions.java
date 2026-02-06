@@ -17,6 +17,5 @@ public class PrintOptions {
     private String bin;
     private String paperSize;
     private Boolean printDialog;
-    ;
     private Integer copies;
 }
