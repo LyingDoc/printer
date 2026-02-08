@@ -18,7 +18,9 @@ import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.standard.PageRanges;
 import java.awt.print.PrinterJob;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,15 +41,15 @@ public class PrintServiceUtils {
         Printer printer = new Printer();
         if (OSUtils.IS_OS_UNIX) {
             return CpusUtil.processPrinters(cupsDests -> {
-                Printer innerPrinter = new Printer();
+                Printer pt = new Printer();
                 return Arrays.stream(cupsDests)
                         .filter(d -> d.is_default == 1)
                         .findFirst() // 找到第一个默认打印机即停止查找
                         .map(d -> {
-                            innerPrinter.setPrinterName(d.name);
-                            return innerPrinter;
+                            pt.setPrinterName(d.name);
+                            return pt;
                         })
-                        .orElse(innerPrinter);
+                        .orElse(pt);
             });
         }
 
@@ -70,13 +72,13 @@ public class PrintServiceUtils {
         List<Printer> result = new ArrayList<>();
         if (OSUtils.IS_OS_UNIX) {
             result = CpusUtil.processPrinters(cupsDests -> {
-                List<Printer> innerResult = new ArrayList<>();
+                List<Printer> printers = new ArrayList<>();
                 for (LibCpus.CupsDest cupsDest : cupsDests) {
                     Printer printer = new Printer();
                     printer.setPrinterName(cupsDest.name);
-                    innerResult.add(printer);
+                    printers.add(printer);
                 }
-                return innerResult;
+                return printers;
             });
             return result;
         }
@@ -105,8 +107,7 @@ public class PrintServiceUtils {
         if (OSUtils.IS_OS_UNIX) {
             // 1. 增强型正则，适配更多驱动格式
             result = CpusUtil.processPrinters(cupsDests -> {
-                if (ArrayUtils.isEmpty(cupsDests)) return null;
-                PaperSizesInfo innerResult = new PaperSizesInfo();
+                PaperSizesInfo paperSizesInfo = new PaperSizesInfo();
                 for (LibCpus.CupsDest cupsDest : cupsDests) {
 
                     int numOptions = cupsDest.num_options;
@@ -115,11 +116,11 @@ public class PrintServiceUtils {
 
                     if (StringUtils.equals(pName, finalPrinterName)) {
                         // 填充状态信息
-                        getPrinterInfo(innerResult, pName, numOptions, options);
+                        getPrinterInfo(paperSizesInfo, pName, numOptions, options);
                     }
                 }
 
-                return innerResult;
+                return paperSizesInfo;
             });
             return result;
         }
@@ -143,20 +144,20 @@ public class PrintServiceUtils {
 
         if (OSUtils.IS_OS_UNIX) {
             result = CpusUtil.processPrinters(cupsDests -> {
-                if (ArrayUtils.isEmpty(cupsDests)) return null;
-                PaperSizesInfo innerResult = new PaperSizesInfo();
-                List<PaperSizesInfo> innerResultList = new ArrayList<>();
+
+                List<PaperSizesInfo> paperSizesInfos = new ArrayList<>();
                 for (LibCpus.CupsDest cupsDest : cupsDests) {
+                    PaperSizesInfo paperSizesInfo = new PaperSizesInfo();
 
                     int numOptions = cupsDest.num_options;
                     Pointer options = cupsDest.options;
                     String pName = cupsDest.name;
                     // 填充状态信息
-                    getPrinterInfo(innerResult, pName, numOptions, options);
-                    innerResultList.add(innerResult);
+                    getPrinterInfo(paperSizesInfo, pName, numOptions, options);
+                    paperSizesInfos.add(paperSizesInfo);
                 }
 
-                return innerResultList;
+                return paperSizesInfos;
             });
             return result;
         }
@@ -241,23 +242,26 @@ public class PrintServiceUtils {
 
 
     @SneakyThrows
-    private static void getPrinterInfo(PaperSizesInfo innerResult, String pName, int numOptions, Pointer options) {
-        innerResult.setPrinterName(pName);
+    private static void getPrinterInfo(PaperSizesInfo paperSizesInfo, String pName, int numOptions, Pointer options) {
+        paperSizesInfo.setPrinterName(pName);
         String ppdPath = LibCpus.instance.cupsGetPPD(pName);
-        if (StringUtils.isEmpty(ppdPath)) new PaperSizesInfo();
+        if (StringUtils.isEmpty(ppdPath)) {
+            System.err.println("ppd-path is empty");
+            return;
+        }
         try {
             List<PaperSizesInfo.PaperSize> paperSizes = getPaperSizeList(ppdPath);
-            innerResult.setPaperSizes(paperSizes);
+            paperSizesInfo.setPaperSizes(paperSizes);
         } finally {
             FileUtils.delete(new File(ppdPath)); // 养成清理 PPD 临时文件的习惯
         }
         String stateStr = LibCpus.instance.cupsGetOption("printer-state", numOptions, options);
         int state = (stateStr != null) ? Integer.parseInt(stateStr) : 0;
-        innerResult.setStatus(state);
+        paperSizesInfo.setStatus(state);
         String reasons = LibCpus.instance.cupsGetOption("printer-state-reasons", numOptions, options);
-        innerResult.setStatusMsg(LibCpusStatus.parseDescription(reasons));
+        paperSizesInfo.setStatusMsg(LibCpusStatus.parseDescription(reasons));
         String jobs = LibCpus.instance.cupsGetOption("queued-job-count", numOptions, options);
-        innerResult.setTaskNumber((jobs != null) ? Integer.parseInt(jobs) : 0);
+        paperSizesInfo.setTaskNumber((jobs != null) ? Integer.parseInt(jobs) : 0);
     }
 
     @SneakyThrows
