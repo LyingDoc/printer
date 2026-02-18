@@ -1,11 +1,11 @@
 package com.tk.lyin.platform;
 
+import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.platform.win32.Winspool;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.W32APIOptions;
 
-public interface WinSpool extends Winspool {
+public interface WinSpool extends Library {
     WinSpool instance = Native.load("winspool.drv", WinSpool.class, W32APIOptions.UNICODE_OPTIONS);
 
     /**

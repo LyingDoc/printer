@@ -35,6 +35,23 @@ public interface LibCpus extends Library {
     String cupsGetOption(String name, int num_options, Pointer options);
 
     /**
+     * 获取任务列表
+     *
+     * @param http       http连接，传 null 表示默认本地连接
+     * @param jobs       任务数组的指针引用
+     * @param name       打印机名称，传 null 表示所有打印机
+     * @param my_jobs    是否只看自己的任务 (1=是, 0=所有用户)
+     * @param which_jobs 哪些任务 (-1=活跃任务, 0=所有任务, 1=已完成任务)
+     * @return 任务数量
+     */
+    int cupsGetJobs2(Pointer http, PointerByReference jobs, String name, int my_jobs, int which_jobs);
+
+    /**
+     * 释放任务列表内存 (极其重要，否则会 OOM)
+     */
+    void cupsFreeJobs(int num_jobs, Pointer jobs);
+
+    /**
      * CUPS 打印机目标结构体
      */
     @Structure.FieldOrder({"name", "instance", "is_default", "num_options", "options"})

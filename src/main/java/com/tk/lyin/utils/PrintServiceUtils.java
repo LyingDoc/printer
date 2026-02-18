@@ -4,6 +4,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Winspool;
 import com.sun.jna.platform.win32.WinspoolUtil;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
 import com.tk.lyin.domain.*;
 import com.tk.lyin.platform.LibCpus;
 import com.tk.lyin.platform.WinSpool;
@@ -255,13 +256,26 @@ public class PrintServiceUtils {
         } finally {
             FileUtils.delete(new File(ppdPath)); // 养成清理 PPD 临时文件的习惯
         }
+
+
+        // 获取打印机状态信息
         String stateStr = LibCpus.instance.cupsGetOption("printer-state", numOptions, options);
         int state = (stateStr != null) ? Integer.parseInt(stateStr) : 0;
         paperSizesInfo.setStatus(state);
         String reasons = LibCpus.instance.cupsGetOption("printer-state-reasons", numOptions, options);
         paperSizesInfo.setStatusMsg(LibCpusStatus.parseDescription(reasons));
-        String jobs = LibCpus.instance.cupsGetOption("queued-job-count", numOptions, options);
-        paperSizesInfo.setTaskNumber((jobs != null) ? Integer.parseInt(jobs) : 0);
+
+        // --- 优化任务数获取逻辑 ---
+        PointerByReference jobsPtrRef = new PointerByReference();
+        int activeJobCount = LibCpus.instance.cupsGetJobs2(null, jobsPtrRef, pName, 0, -1);
+
+        if (activeJobCount >= 0) {
+            paperSizesInfo.setTaskNumber(activeJobCount);
+            // 关键：释放 C 申请的内存
+            if (activeJobCount > 0 && jobsPtrRef.getValue() != null) {
+                LibCpus.instance.cupsFreeJobs(activeJobCount, jobsPtrRef.getValue());
+            }
+        }
     }
 
     @SneakyThrows
