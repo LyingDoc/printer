@@ -200,14 +200,8 @@ public class PrintServiceUtils {
                 break;
             }
         }
-        // 关键：将 PDF 转换为可打印的 Pageable 对象
+        // 设置任务名称
         job.setJobName(filePath);
-        // 设置奇、偶打印
-        PrintUtils.setSubSet(pdDocument, printOptions.getSubset());
-
-
-        //设置缩放
-        PrintUtils.setScaling(pdDocument, job, printOptions.getSide());
 
         // 设置属性
         PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
@@ -231,7 +225,10 @@ public class PrintServiceUtils {
         if (StringUtils.isNotEmpty(pages)) {
             attributes.add(new PageRanges(pages));
         }
-        job.setJobName(filePath);
+        // 设置奇、偶打印
+        PrintUtils.setSubSet(pdDocument, printOptions.getSubset());
+        //设置缩放，关键：将 PDF 转换为可打印的 Pageable 对象
+        PrintUtils.setScaling(pdDocument, job, printOptions.getScale(), attributes);
 
         // 设置对话框打印
         if (printOptions.getPrintDialog()) {
@@ -310,16 +307,6 @@ public class PrintServiceUtils {
         return ps;
     }
 
-    /**
-     * 小端序读取 4 字节整数
-     */
-    private static int readInt(byte[] buf, int offset) {
-        return (buf[offset] & 0xFF) |
-                ((buf[offset + 1] & 0xFF) << 8) |
-                ((buf[offset + 2] & 0xFF) << 16) |
-                ((buf[offset + 3] & 0xFF) << 24);
-    }
-
 
     /**
      * 调用 DeviceCapabilities 获取底层纸张信息
@@ -362,6 +349,16 @@ public class PrintServiceUtils {
 
 
         return paperSizes;
+    }
+
+    /**
+     * 小端序读取 4 字节整数
+     */
+    private static int readInt(byte[] buf, int offset) {
+        return (buf[offset] & 0xFF) |
+                ((buf[offset + 1] & 0xFF) << 8) |
+                ((buf[offset + 2] & 0xFF) << 16) |
+                ((buf[offset + 3] & 0xFF) << 24);
     }
 
 }

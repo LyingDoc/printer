@@ -4,6 +4,7 @@ import org.dromara.pdf.shade.org.apache.pdfbox.pdmodel.PDDocument;
 import org.dromara.pdf.shade.org.apache.pdfbox.printing.PDFPrintable;
 import org.dromara.pdf.shade.org.apache.pdfbox.printing.Scaling;
 
+import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.standard.*;
 import java.awt.print.Book;
 import java.awt.print.PageFormat;
@@ -57,7 +58,7 @@ public class PrintUtils {
 
     public static Chromaticity parseChromaticity(String chromaticityStr) {
         if (StringUtils.isEmpty(chromaticityStr)) {
-            return Chromaticity.MONOCHROME; // 默认使用彩色，符合现代大多数场景
+            return Chromaticity.MONOCHROME; // 默认使用黑色，符合现代大多数场景
         }
 
         // 转换逻辑：直接转大写。
@@ -110,7 +111,7 @@ public class PrintUtils {
         }
     }
 
-    public static void setScaling(PDDocument pdDocument, PrinterJob job, String scaling) {
+    public static void setScaling(PDDocument pdDocument, PrinterJob job, String scaling, PrintRequestAttributeSet attributes) {
         Scaling scale = Scaling.SCALE_TO_FIT;
         if (StringUtils.isNotEmpty(scaling)) {
             // 设置缩放
@@ -128,7 +129,7 @@ public class PrintUtils {
         }
         Book book = new Book();
         PDFPrintable pdfPrintable = new PDFPrintable(pdDocument, scale);
-        PageFormat pf = job.defaultPage();
+        PageFormat pf = job.getPageFormat(attributes);
         book.append(pdfPrintable, pf, pdDocument.getNumberOfPages());
         job.setPageable(book);
     }
