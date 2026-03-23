@@ -4,10 +4,7 @@ import org.dromara.pdf.shade.org.apache.pdfbox.pdmodel.PDDocument;
 import org.dromara.pdf.shade.org.apache.pdfbox.printing.PDFPrintable;
 import org.dromara.pdf.shade.org.apache.pdfbox.printing.Scaling;
 
-import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.standard.*;
-import java.awt.print.Book;
-import java.awt.print.PageFormat;
 import java.awt.print.PrinterJob;
 import java.lang.reflect.Field;
 
@@ -111,7 +108,7 @@ public class PrintUtils {
         }
     }
 
-    public static void setScaling(PDDocument pdDocument, PrinterJob job, String scaling, PrintRequestAttributeSet attributes) {
+    public static void setScaling(PDDocument pdDocument, PrinterJob job, String scaling) {
         Scaling scale = Scaling.SCALE_TO_FIT;
         if (StringUtils.isNotEmpty(scaling)) {
             // 设置缩放
@@ -127,11 +124,8 @@ public class PrintUtils {
                     break;
             }
         }
-        Book book = new Book();
         PDFPrintable pdfPrintable = new PDFPrintable(pdDocument, scale);
-        PageFormat pf = job.getPageFormat(attributes);
-        book.append(pdfPrintable, pf, pdDocument.getNumberOfPages());
-        job.setPageable(book);
+        job.setPrintable(pdfPrintable);
     }
 
     public static void setSubSet(PDDocument pdDocument, String subSet) {

@@ -49,8 +49,6 @@ public class Printers {
             PrintServiceUtils.print(printOptions);
         }
     }
-
-
 }
 
 

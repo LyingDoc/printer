@@ -66,10 +66,8 @@ public class ArrayUtils {
         List<T> list = new ArrayList<>();
         if (isNotEmpty(array)) {
             Collections.addAll(list, array);
-            return list;
-        } else {
-            return list;
         }
+        return list;
     }
 
     public static boolean isEmpty(Object[] array) {

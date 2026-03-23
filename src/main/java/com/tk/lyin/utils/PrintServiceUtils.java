@@ -189,6 +189,11 @@ public class PrintServiceUtils {
         if (StringUtils.isEmpty(printerName)) {
             printerName = getDefaultPrinter().getPrinterName();
         }
+        // 判断Linux环境中没有打印机情况
+        if (StringUtils.isEmpty(printerName)) {
+            System.err.println("printer-name is empty");
+            return;
+        }
         PDDocument pdDocument = PdfHandler.getDocumentHandler().load(filePath).getTarget();
 
         PrinterJob job = PrinterJob.getPrinterJob();
@@ -228,8 +233,7 @@ public class PrintServiceUtils {
         // 设置奇、偶打印
         PrintUtils.setSubSet(pdDocument, printOptions.getSubset());
         //设置缩放，关键：将 PDF 转换为可打印的 Pageable 对象
-        PrintUtils.setScaling(pdDocument, job, printOptions.getScale(), attributes);
-
+        PrintUtils.setScaling(pdDocument, job, printOptions.getScale());
         // 设置对话框打印
         if (printOptions.getPrintDialog()) {
             job.printDialog(attributes);

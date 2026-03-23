@@ -45,30 +45,26 @@ public class StringUtils {
     }
 
     public static boolean hasText(String... str) {
-        if (str != null && str.length != 0) {
+        if (ArrayUtils.isNotEmpty(str)) {
             for (String s : str) {
                 if (isNotEmpty(s)) {
                     return true;
                 }
             }
-            return false;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public static boolean include(String src, String... arrays) {
-        if (isNotEmpty(src)) {
+        if (isNotEmpty(src) && ArrayUtils.isNotEmpty(arrays)) {
             for (String arr : arrays) {
                 boolean isEq = equals(src, arr);
                 if (isEq) {
                     return true;
                 }
             }
-            return false;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public static boolean exclude(String src, String... arrays) {
@@ -153,7 +149,7 @@ public class StringUtils {
     }
 
     public static String join(String[] value, String split) {
-        if (value != null && value.length >= 1) {
+        if (ArrayUtils.isEmpty(value)) {
             StringBuilder builder = new StringBuilder();
             for (String v : value) {
                 builder.append(split).append(v);
@@ -166,7 +162,7 @@ public class StringUtils {
     }
 
     public static String join(Collection<String> value, String split) {
-        if (value != null && !value.isEmpty()) {
+        if (CollectionUtils.isEmpty(value)) {
             StringBuilder builder = new StringBuilder();
             for (String v : value) {
                 builder.append(split).append(v);
