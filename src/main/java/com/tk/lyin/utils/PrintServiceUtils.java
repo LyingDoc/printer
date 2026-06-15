@@ -237,6 +237,7 @@ public class PrintServiceUtils {
     @SneakyThrows
     private static void getPrinterInfo(PaperSizesInfo paperSizesInfo, String pName, int numOptions, Pointer options) {
 
+        paperSizesInfo.setPrinterName(pName);
         String ppdPath = LibCpus.instance.cupsGetPPD(pName);
         if (StringUtils.isEmpty(ppdPath)) {
             System.err.println("ppd-path is empty");
@@ -258,11 +259,6 @@ public class PrintServiceUtils {
             System.err.println("CUPS scheduler not running, skipping job test");
             return;
         }
-        Pointer jobsPtr = jobsRef.getValue();
-        Cups.CupsJob job = new Cups.CupsJob(jobsPtr);
-
-        paperSizesInfo.setPrinterName(job.dest);
-
         // 获取任务状态码以及任务原因
         String stateStr = Cups.INSTANCE.cupsGetOption("printer-state", numOptions, options);
         int state = (stateStr != null) ? Integer.parseInt(stateStr) : 0;
@@ -273,6 +269,7 @@ public class PrintServiceUtils {
         // --- 优化任务数获取逻辑 ---
         paperSizesInfo.setTaskNumber(numJobs);
         // 关键：释放 C 申请的内存
+        Pointer jobsPtr = jobsRef.getValue();
         Cups.INSTANCE.cupsFreeJobs(numJobs, jobsPtr);
     }
 
