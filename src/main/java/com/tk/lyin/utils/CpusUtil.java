@@ -1,8 +1,8 @@
 package com.tk.lyin.utils;
 
 import com.sun.jna.Pointer;
+import com.sun.jna.platform.unix.Cups;
 import com.sun.jna.ptr.PointerByReference;
-import com.tk.lyin.platform.LibCpus;
 import lombok.SneakyThrows;
 
 import java.io.IOException;
@@ -14,24 +14,23 @@ public class CpusUtil {
     public static <T> T processPrinters(PrinterProcessor<T> processor) {
         PointerByReference pointerByReference = new PointerByReference();
         // 1. 申请内存
-        int numDests = LibCpus.instance.cupsGetDests(pointerByReference);
+        int numDests = Cups.INSTANCE.cupsGetDests(pointerByReference);
         Pointer pointer = pointerByReference.getValue();
 
         T result = null;
         try {
             if (numDests > 0 && pointer != null) {
                 // 2. 转换为 Java 结构体供 Java 代码使用
-                LibCpus.CupsDest destRef = new LibCpus.CupsDest(pointer);
+                Cups.CupsDest cupsDest = new Cups.CupsDest(pointer);
                 // 注意：这里 toArray 需要你的 JNA Structure 类正确配置了
-                LibCpus.CupsDest[] dests = (LibCpus.CupsDest[]) destRef.toArray(numDests);
-
+                Cups.CupsDest[] dests = (Cups.CupsDest[]) cupsDest.toArray(numDests);
                 // 3. 执行外部传入的逻辑
                 result = processor.process(dests);
             }
         } finally {
             // 4. 确保释放内存！无论中间发生什么
             if (numDests > 0 && pointer != null) {
-                LibCpus.instance.cupsFreeDests(numDests, pointer);
+                Cups.INSTANCE.cupsFreeDests(numDests, pointer);
             }
         }
         return result;
@@ -39,6 +38,6 @@ public class CpusUtil {
 
     // 定义一个接口，用来处理找到的打印机列表
     public interface PrinterProcessor<T> {
-        T process(LibCpus.CupsDest[] dests) throws IOException;
+        T process(Cups.CupsDest[] dests) throws IOException;
     }
 }

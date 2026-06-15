@@ -1,6 +1,7 @@
 package com.tk.lyin.utils;
 
 import com.sun.jna.Pointer;
+import com.sun.jna.platform.unix.Cups;
 import com.sun.jna.platform.win32.Winspool;
 import com.sun.jna.platform.win32.WinspoolUtil;
 import com.sun.jna.ptr.IntByReference;
@@ -24,7 +25,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,19 +41,10 @@ public class PrintServiceUtils {
     public static Printer getDefaultPrinter() {
         Printer printer = new Printer();
         if (OSUtils.IS_OS_UNIX) {
-            return CpusUtil.processPrinters(cupsDests -> {
-                Printer pt = new Printer();
-                return Arrays.stream(cupsDests)
-                        .filter(d -> d.is_default == 1)
-                        .findFirst() // 找到第一个默认打印机即停止查找
-                        .map(d -> {
-                            pt.setPrinterName(d.name);
-                            return pt;
-                        })
-                        .orElse(pt);
-            });
+            String printerDefaultName = Cups.INSTANCE.cupsGetDefault();
+            printer.setPrinterName(printerDefaultName);
+            return printer;
         }
-
 
         //获取所需的缓冲区长度
         IntByReference intByReference = new IntByReference();
@@ -74,7 +65,7 @@ public class PrintServiceUtils {
         if (OSUtils.IS_OS_UNIX) {
             result = CpusUtil.processPrinters(cupsDests -> {
                 List<Printer> printers = new ArrayList<>();
-                for (LibCpus.CupsDest cupsDest : cupsDests) {
+                for (Cups.CupsDest cupsDest : cupsDests) {
                     Printer printer = new Printer();
                     printer.setPrinterName(cupsDest.name);
                     printers.add(printer);
@@ -109,7 +100,7 @@ public class PrintServiceUtils {
             // 1. 增强型正则，适配更多驱动格式
             result = CpusUtil.processPrinters(cupsDests -> {
                 PaperSizesInfo paperSizesInfo = new PaperSizesInfo();
-                for (LibCpus.CupsDest cupsDest : cupsDests) {
+                for (Cups.CupsDest cupsDest : cupsDests) {
 
                     int numOptions = cupsDest.num_options;
                     Pointer options = cupsDest.options;
@@ -147,7 +138,7 @@ public class PrintServiceUtils {
             result = CpusUtil.processPrinters(cupsDests -> {
 
                 List<PaperSizesInfo> paperSizesInfos = new ArrayList<>();
-                for (LibCpus.CupsDest cupsDest : cupsDests) {
+                for (Cups.CupsDest cupsDest : cupsDests) {
                     PaperSizesInfo paperSizesInfo = new PaperSizesInfo();
 
                     int numOptions = cupsDest.num_options;
@@ -245,7 +236,7 @@ public class PrintServiceUtils {
 
     @SneakyThrows
     private static void getPrinterInfo(PaperSizesInfo paperSizesInfo, String pName, int numOptions, Pointer options) {
-        paperSizesInfo.setPrinterName(pName);
+
         String ppdPath = LibCpus.instance.cupsGetPPD(pName);
         if (StringUtils.isEmpty(ppdPath)) {
             System.err.println("ppd-path is empty");
@@ -260,23 +251,29 @@ public class PrintServiceUtils {
 
 
         // 获取打印机状态信息
-        String stateStr = LibCpus.instance.cupsGetOption("printer-state", numOptions, options);
+        PointerByReference jobsRef = new PointerByReference();
+        int numJobs = Cups.INSTANCE.cupsGetJobs2(null, jobsRef, pName, 0,
+                Cups.CUPS_WHICHJOBS_ALL);
+        if (numJobs < 0) {
+            System.err.println("CUPS scheduler not running, skipping job test");
+            return;
+        }
+        Pointer jobsPtr = jobsRef.getValue();
+        Cups.CupsJob job = new Cups.CupsJob(jobsPtr);
+
+        paperSizesInfo.setPrinterName(job.dest);
+
+        // 获取任务状态码以及任务原因
+        String stateStr = Cups.INSTANCE.cupsGetOption("printer-state", numOptions, options);
         int state = (stateStr != null) ? Integer.parseInt(stateStr) : 0;
         paperSizesInfo.setStatus(state);
-        String reasons = LibCpus.instance.cupsGetOption("printer-state-reasons", numOptions, options);
+        String reasons = Cups.INSTANCE.cupsGetOption("printer-state-reasons", numOptions, options);
         paperSizesInfo.setStatusMsg(LibCpusStatus.parseDescription(reasons));
 
         // --- 优化任务数获取逻辑 ---
-        PointerByReference jobsPtrRef = new PointerByReference();
-        int activeJobCount = LibCpus.instance.cupsGetJobs2(null, jobsPtrRef, pName, 0, -1);
-
-        if (activeJobCount >= 0) {
-            paperSizesInfo.setTaskNumber(activeJobCount);
-            // 关键：释放 C 申请的内存
-            if (activeJobCount > 0 && jobsPtrRef.getValue() != null) {
-                LibCpus.instance.cupsFreeJobs(activeJobCount, jobsPtrRef.getValue());
-            }
-        }
+        paperSizesInfo.setTaskNumber(numJobs);
+        // 关键：释放 C 申请的内存
+        Cups.INSTANCE.cupsFreeJobs(numJobs, jobsPtr);
     }
 
     @SneakyThrows
